@@ -4,28 +4,32 @@ import json
 import os
 
 # --- APP CONFIGURATION ---
-# Ensure your GROQ_API_KEY is set in GitHub Codespaces Secrets
 api_key = os.environ.get("GROQ_API_KEY")
 
-# --- PERMANENT PROMPT SETTINGS ---
-# You can adjust these instructions right here in the code
 SYSTEM_PROMPT = """
-You are a professional translator. Provide 3 distinct English translations for the text provided.
-Return ONLY a JSON object with exactly these keys:
-- "v1": Formal and professional (for business/official use).
-- "v2": Natural and idiomatic (how a native speaker actually talks).
-- "v3": Creative or poetic (captures the mood and artistic essence).
+You are a translation editor specializing in Brazilian Portuguese to English. 
+Your task is to:
+1. Divide the provided text into logical, readable segments (sentences or short meaningful phrases).
+2. For EACH segment, provide 3 distinct and high-quality English translations.
 
-Text to translate: {text}
+Return ONLY a JSON object with this exact structure:
+{{
+  "segments": [
+    {{
+      "original": "Texto original em português",
+      "v1": "First English variation",
+      "v2": "Second English variation",
+      "v3": "Third English variation"
+    }},
+    ...
+  ]
+}}
+
+Text to process (PT-BR): {text}
 """
 
-def get_translations(source_text):
-    """
-    Sends the hard-coded prompt to GPT-OSS-120B and returns the JSON result.
-    """
-    # Inject the user's text into our permanent prompt
-    formatted_prompt = SYSTEM_PROMPT.format(text=source_text)
-    
+def get_segmented_translations(full_text):
+    formatted_prompt = SYSTEM_PROMPT.format(text=full_text)
     try:
         response = completion(
             model="groq/openai/gpt-oss-120b",
@@ -33,43 +37,71 @@ def get_translations(source_text):
             api_key=api_key,
             response_format={ "type": "json_object" }
         )
-        
-        # Parse the JSON string into a Python Dictionary
         return json.loads(response.choices[0].message.content)
-        
     except Exception as e:
         return {"error": str(e)}
 
 # --- STREAMLIT UI ---
-st.set_page_config(page_title="AI Triple Translator", layout="centered")
+st.set_page_config(page_title="Editor", layout="centered")
 
-st.title("🎯 Triple English Translator")
-st.markdown("Enter your text below to get three distinct AI-powered English variations.")
+st.title("Portuguese → English Builder")
 
-# Simplified Input: Only the text to translate
-source_text = st.text_area("Source Text:", placeholder="Enter text in any language...", height=150)
+# Initialize session state to store translations and selections
+if "translation_data" not in st.session_state:
+    st.session_state.translation_data = None
+if "selections" not in st.session_state:
+    st.session_state.selections = {}
 
-if st.button("Translate Now", use_container_width=True):
-    if not source_text.strip():
-        st.warning("Please enter some text first!")
+source_text = st.text_area("Source:", placeholder="Cole seu texto...", height=150, label_visibility="collapsed")
+
+if st.button("Translate", use_container_width=True):
+    if source_text.strip():
+        with st.spinner("Processing..."):
+            st.session_state.translation_data = get_segmented_translations(source_text)
+            # Reset selections for new translation
+            st.session_state.selections = {}
     else:
-        with st.spinner("Generating translations..."):
-            results = get_translations(source_text)
+        st.warning("Por favor, insira um texto.")
+
+# --- DISPLAY & SELECTION ---
+if st.session_state.translation_data and "segments" in st.session_state.translation_data:
+    st.divider()
+    
+    compiled_text = []
+
+    for i, item in enumerate(st.session_state.translation_data["segments"]):
+        options = [item['v1'], item['v2'], item['v3']]
         
-        if "error" in results:
-            st.error(f"API Error: {results['error']}")
-        else:
-            st.divider()
-            
-            # Displaying results in a clean vertical list for better readability
-            # Version 1: Formal
-            st.subheader("🏛️ Formal Version")
-            st.info(results.get("v1", "Translation missing"))
-            
-            # Version 2: Idiomatic
-            st.subheader("🗣️ Natural / Idiomatic")
-            st.success(results.get("v2", "Translation missing"))
-            
-            # Version 3: Poetic
-            st.subheader("✨ Creative / Poetic")
-            st.warning(results.get("v3", "Translation missing"))
+        # Multiselect for each segment
+        selected = st.multiselect(
+            f"Select versions for Segment {i+1}",
+            options,
+            key=f"seg_{i}",
+            label_visibility="collapsed"
+        )
+        
+        # Display the options in subtle boxes for reference
+        st.code(item['v1'], language=None)
+        st.code(item['v2'], language=None)
+        st.code(item['v3'], language=None)
+        
+        # Add selected items to the final compilation list
+        if selected:
+            compiled_text.extend(selected)
+        
+        st.write("") # Gap
+
+    # --- FINAL COMPILATION AREA ---
+    if compiled_text:
+        st.divider()
+        st.subheader("Selected Text")
+        
+        # Join all selected translations into a single string
+        final_string = " ".join(compiled_text)
+        
+        # Display in a text area so it's easy to copy (Streamlit has a built-in copy button for code blocks)
+        st.text_area("Ready to copy:", value=final_string, height=200)
+        
+        # Alternatively, using st.code provides a direct "Copy" icon in the top right
+        st.code(final_string, language=None)
+        st.success("You can use the 'Copy' icon in the top right of the box above.")
