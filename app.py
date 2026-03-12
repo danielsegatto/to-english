@@ -15,7 +15,7 @@ def handle_translation():
         st.session_state.text_to_process = None
 
 # --- APP INITIALIZATION ---
-st.set_page_config(page_title="🔄", page_icon="🇧🇷➡️🇺🇸", layout="centered")
+st.set_page_config(page_title="🇧🇷➡️🇺🇸", page_icon="🔄", layout="centered")
 
 # CSS to force text wrapping in st.code and make the sidebar buttons discreet
 st.markdown("""
