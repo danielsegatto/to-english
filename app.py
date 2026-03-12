@@ -41,16 +41,14 @@ def get_segmented_translations(full_text):
     except Exception as e:
         return {"error": str(e)}
 
-# --- STREAMLIT UI ---
-st.set_page_config(page_title="Editor", layout="centered")
+# --- STREAMLIT UI SETUP ---
+st.set_page_config(page_title="Translator Builder", layout="centered")
 
 st.title("Portuguese → English Builder")
 
-# Initialize session state to store translations and selections
+# Initialize session state
 if "translation_data" not in st.session_state:
     st.session_state.translation_data = None
-if "selections" not in st.session_state:
-    st.session_state.selections = {}
 
 source_text = st.text_area("Source:", placeholder="Cole seu texto...", height=150, label_visibility="collapsed")
 
@@ -58,50 +56,47 @@ if st.button("Translate", use_container_width=True):
     if source_text.strip():
         with st.spinner("Processing..."):
             st.session_state.translation_data = get_segmented_translations(source_text)
-            # Reset selections for new translation
-            st.session_state.selections = {}
     else:
         st.warning("Por favor, insira um texto.")
 
-# --- DISPLAY & SELECTION ---
+# --- DISPLAY & INDIVIDUAL CHECKBOXES ---
 if st.session_state.translation_data and "segments" in st.session_state.translation_data:
     st.divider()
     
-    compiled_text = []
+    selected_versions = []
 
     for i, item in enumerate(st.session_state.translation_data["segments"]):
-        options = [item['v1'], item['v2'], item['v3']]
+        # Create three checkboxes for the three versions
+        # We use a unique key for each checkbox based on segment index and version number
         
-        # Multiselect for each segment
-        selected = st.multiselect(
-            f"Select versions for Segment {i+1}",
-            options,
-            key=f"seg_{i}",
-            label_visibility="collapsed"
-        )
+        v1_check = st.checkbox(item['v1'], key=f"seg_{i}_v1")
+        if v1_check:
+            selected_versions.append(item['v1'])
+            
+        v2_check = st.checkbox(item['v2'], key=f"seg_{i}_v2")
+        if v2_check:
+            selected_versions.append(item['v2'])
+            
+        v3_check = st.checkbox(item['v3'], key=f"seg_{i}_v3")
+        if v3_check:
+            selected_versions.append(item['v3'])
         
-        # Display the options in subtle boxes for reference
-        st.code(item['v1'], language=None)
-        st.code(item['v2'], language=None)
-        st.code(item['v3'], language=None)
-        
-        # Add selected items to the final compilation list
-        if selected:
-            compiled_text.extend(selected)
-        
-        st.write("") # Gap
+        st.write("") # Small spacing between segments
 
     # --- FINAL COMPILATION AREA ---
-    if compiled_text:
+    if selected_versions:
         st.divider()
         st.subheader("Selected Text")
         
-        # Join all selected translations into a single string
-        final_string = " ".join(compiled_text)
+        # Join all selected translations
+        final_string = " ".join(selected_versions)
         
-        # Display in a text area so it's easy to copy (Streamlit has a built-in copy button for code blocks)
-        st.text_area("Ready to copy:", value=final_string, height=200)
-        
-        # Alternatively, using st.code provides a direct "Copy" icon in the top right
+        # Display in a code block for the one-click "Copy" icon
         st.code(final_string, language=None)
-        st.success("You can use the 'Copy' icon in the top right of the box above.")
+        
+        # Optional: Clear button to reset checkboxes
+        if st.button("Reset All Selections"):
+            for key in st.session_state.keys():
+                if key.startswith("seg_"):
+                    st.session_state[key] = False
+            st.rerun()
