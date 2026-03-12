@@ -2,12 +2,14 @@ import streamlit as st
 import streamlit.components.v1 as components
 
 def inject_keyboard_shortcut():
-    """Injects JavaScript to trigger the 'Translate' button with Ctrl+Enter."""
+    """Injects JavaScript for shortcuts: Ctrl+Enter (Translate) and '/' (Focus Input)."""
     components.html(
         """
         <script>
         const doc = window.parent.document;
+
         doc.addEventListener('keydown', function(e) {
+            // 1. Keyboard Shortcut (Ctrl+Enter) to Translate
             if ((e.ctrlKey || e.metaKey) && e.keyCode === 13) {
                 const buttons = doc.querySelectorAll('button');
                 for (const btn of buttons) {
@@ -15,6 +17,16 @@ def inject_keyboard_shortcut():
                         btn.click();
                         break;
                     }
+                }
+            }
+
+            // 2. Keyboard Shortcut ('/') to Focus Input
+            // We check if the user is NOT already typing in a field before focusing
+            if (e.key === '/' && doc.activeElement.tagName !== 'TEXTAREA' && doc.activeElement.tagName !== 'INPUT') {
+                e.preventDefault(); // Prevent the '/' character from being entered
+                const textArea = doc.querySelector('textarea');
+                if (textArea) {
+                    textArea.focus();
                 }
             }
         });
