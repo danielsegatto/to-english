@@ -13,3 +13,15 @@ env/
 
 # IDE
 .vscode/
+
+# Local secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Secret scanning artifacts
+.secrets.baseline
