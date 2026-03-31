@@ -78,6 +78,9 @@ if st.button("Translate", use_container_width=True, on_click=handle_translation,
     else:
         st.warning("Por favor, insira um texto.")
 
+if st.session_state.translation_data and "error" in st.session_state.translation_data:
+    st.error(st.session_state.translation_data["error"])
+
 # --- RESULTS & SELECTION ---
 if st.session_state.translation_data and "segments" in st.session_state.translation_data:
     st.divider()

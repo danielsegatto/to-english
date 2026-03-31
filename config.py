@@ -1,12 +1,12 @@
-import os
+import streamlit as st
 
 # API Configuration
-GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
-MODEL_NAME = os.environ.get("GROQ_MODEL", "openai/gpt-oss-120b")
-TEMPERATURE = float(os.environ.get("GROQ_TEMPERATURE", "1"))
-MAX_COMPLETION_TOKENS = int(os.environ.get("GROQ_MAX_COMPLETION_TOKENS", "8192"))
-TOP_P = float(os.environ.get("GROQ_TOP_P", "1"))
-REASONING_EFFORT = os.environ.get("GROQ_REASONING_EFFORT", "medium")
+GROQ_API_KEY = st.secrets.get("GROQ_API_KEY", "")
+MODEL_NAME = "openai/gpt-oss-120b"
+TEMPERATURE = 1
+MAX_COMPLETION_TOKENS = 4096
+TOP_P = 1
+REASONING_EFFORT = "medium"
 
 # AI Personality and Instructions
 SYSTEM_PROMPT = """
